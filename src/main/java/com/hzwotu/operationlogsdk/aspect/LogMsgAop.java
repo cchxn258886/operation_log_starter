@@ -304,7 +304,7 @@ public class LogMsgAop {
     }
 
     /**
-     * TODO 初始化的时候需要从配置文件获取数据
+     * 初始化的时候需要从配置文件获取数据
      */
     @PostConstruct
     private void initDataMap() {
