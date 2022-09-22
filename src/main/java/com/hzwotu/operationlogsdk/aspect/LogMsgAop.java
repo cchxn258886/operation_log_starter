@@ -4,7 +4,6 @@ import com.hzwotu.operationlogsdk.aspect.config.OperationLogConfigProperties;
 import com.hzwotu.operationlogsdk.dto.*;
 import com.hzwotu.operationlogsdk.filter.MyRequestWrapper;
 import com.hzwotu.operationlogsdk.po.OperationLogEntity;
-import com.hzwotu.operationlogsdk.po.OperationLogTypeEntity;
 import com.hzwotu.operationlogsdk.po.UserInfo;
 import com.hzwotu.operationlogsdk.service.OperationLogService;
 import com.hzwotu.operationlogsdk.service.OperationLogTypeService;
@@ -18,7 +17,7 @@ import org.apache.hc.client5.http.impl.classic.HttpClientBuilder;
 import org.apache.hc.core5.http.ContentType;
 import org.apache.hc.core5.http.io.entity.EntityUtils;
 import org.apache.hc.core5.http.io.entity.StringEntity;
-import org.aspectj.lang.ProceedingJoinPoint;
+import org.aspectj.lang.JoinPoint;
 import org.aspectj.lang.annotation.AfterReturning;
 import org.aspectj.lang.annotation.Aspect;
 import org.aspectj.lang.reflect.MethodSignature;
@@ -26,18 +25,17 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
-import org.springframework.util.CollectionUtils;
 import org.springframework.util.StringUtils;
 import org.springframework.web.context.request.RequestContextHolder;
 import org.springframework.web.context.request.ServletRequestAttributes;
 
+import javax.annotation.PostConstruct;
 import javax.servlet.http.HttpServletRequest;
 import java.lang.reflect.Method;
 import java.lang.reflect.Parameter;
 import java.net.InetAddress;
 import java.net.UnknownHostException;
 import java.nio.charset.StandardCharsets;
-import java.sql.SQLException;
 import java.time.LocalDateTime;
 import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
@@ -68,10 +66,10 @@ public class LogMsgAop {
 
 
     @AfterReturning("@annotation(com.hzwotu.operationlogsdk.aspect.LogMsgAspectAnnotation)")
-    public void logMsg(final ProceedingJoinPoint jp) throws Throwable {
-        if (modelName.size() == 0) {
-            initDataMap();
-        }
+    public void logMsg(final JoinPoint jp) throws Throwable {
+//        if (modelName.size() == 0) {
+//            initDataMap();
+//        }
         HttpServletRequest request = ((ServletRequestAttributes) RequestContextHolder.currentRequestAttributes()).getRequest();
         Object[] args = jp.getArgs();
         MethodSignature signature = (MethodSignature) jp.getSignature();
@@ -126,9 +124,9 @@ public class LogMsgAop {
                 operationLogEntity.setKeyCode(code);
             } else {
                 String[] strings = parseUri(request.getRequestURI());
-                if (body.length == 0){
+                if (body.length == 0) {
                     operationLogEntity.setKeyCode(strings[strings.length - 1]);
-                }else {
+                } else {
                     operationLogEntity.setKeyCode("");
                 }
             }
@@ -306,10 +304,11 @@ public class LogMsgAop {
     }
 
     /**
-     * TODO 初始化的时候需要从数据库加载数据
+     * TODO 初始化的时候需要从配置文件获取数据
      */
+    @PostConstruct
     private void initDataMap() {
-        List<OperationLogTypeEntity> operationLogTypeEntities = null;
+/*        List<OperationLogTypeEntity> operationLogTypeEntities = null;
         try {
             logger.info("初始化map");
             operationLogTypeEntities = operationLogTypeService.selectAll();
@@ -322,7 +321,11 @@ public class LogMsgAop {
         }
         operationLogTypeEntities.forEach((item) -> {
             modelName.put(item.getEnName(), item.getZhName());
-        });
+        });*/
+        if (operationLogConfigProperties.getEnName().isEmpty() || operationLogConfigProperties.getZhName().isEmpty()) {
+            throw new RuntimeException("映射配置需要配置完全");
+        }
+        modelName.put(operationLogConfigProperties.getEnName(), operationLogConfigProperties.getZhName());
     }
 
 

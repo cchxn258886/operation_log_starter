@@ -31,8 +31,7 @@ public class OperationLogServiceImpl implements OperationLogService {
         if (Objects.isNull(entity)) {
             return;
         }
-        System.out.println("preparedStatementEntity："+entity);
-        logger.info("preparedStatementEntity:"+entity.toString());
+        logger.debug("preparedStatementEntity:"+entity);
         try {
             Class.forName(JDBC_TYPE_NAME);
         } catch (Exception e) {
@@ -59,10 +58,7 @@ public class OperationLogServiceImpl implements OperationLogService {
             preparedStatement.setString(6, entity.getAdminCode());
             preparedStatement.setString(7, entity.getIp());
             preparedStatement.setObject(8, entity.getCreatedAt());
-            int i = preparedStatement.executeUpdate();
-            if (i >= 1) {
-                logger.info("插入数据库成功;" + entity.toString());
-            }
+            preparedStatement.executeUpdate();
         } catch (SQLException ex) {
             throw new RuntimeException("插入数据库失败:", ex);
         } finally {

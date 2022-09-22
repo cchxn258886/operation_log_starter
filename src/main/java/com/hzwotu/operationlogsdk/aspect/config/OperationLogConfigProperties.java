@@ -15,6 +15,27 @@ public class OperationLogConfigProperties {
     private String idServiceAddress;
     private String adminServiceAddress;
 
+    private String enName;
+    private String zhName;
+
+
+    public String getEnName() {
+        return enName;
+    }
+
+    public void setEnName(String enName) {
+        this.enName = enName;
+    }
+
+    public String getZhName() {
+        return zhName;
+    }
+
+    public void setZhName(String zhName) {
+        this.zhName = zhName;
+    }
+
+
     public String getAdminServiceAddress() {
         return adminServiceAddress;
     }
