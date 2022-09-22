@@ -19,16 +19,13 @@ import org.apache.hc.core5.http.ContentType;
 import org.apache.hc.core5.http.io.entity.EntityUtils;
 import org.apache.hc.core5.http.io.entity.StringEntity;
 import org.aspectj.lang.ProceedingJoinPoint;
-import org.aspectj.lang.annotation.After;
 import org.aspectj.lang.annotation.AfterReturning;
-import org.aspectj.lang.annotation.Around;
 import org.aspectj.lang.annotation.Aspect;
 import org.aspectj.lang.reflect.MethodSignature;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
-import org.springframework.transaction.annotation.Transactional;
 import org.springframework.util.CollectionUtils;
 import org.springframework.util.StringUtils;
 import org.springframework.web.context.request.RequestContextHolder;
@@ -129,7 +126,11 @@ public class LogMsgAop {
                 operationLogEntity.setKeyCode(code);
             } else {
                 String[] strings = parseUri(request.getRequestURI());
-                operationLogEntity.setKeyCode(strings[strings.length - 1]);
+                if (body.length == 0){
+                    operationLogEntity.setKeyCode(strings[strings.length - 1]);
+                }else {
+                    operationLogEntity.setKeyCode("");
+                }
             }
 
             try {
