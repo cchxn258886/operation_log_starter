@@ -19,6 +19,8 @@ import org.apache.hc.core5.http.ContentType;
 import org.apache.hc.core5.http.io.entity.EntityUtils;
 import org.apache.hc.core5.http.io.entity.StringEntity;
 import org.aspectj.lang.ProceedingJoinPoint;
+import org.aspectj.lang.annotation.After;
+import org.aspectj.lang.annotation.AfterReturning;
 import org.aspectj.lang.annotation.Around;
 import org.aspectj.lang.annotation.Aspect;
 import org.aspectj.lang.reflect.MethodSignature;
@@ -68,9 +70,8 @@ public class LogMsgAop {
     private static final Map<String, String> modelName = new HashMap();
 
 
-    @Around("@annotation(com.hzwotu.operationlogsdk.aspect.LogMsgAspectAnnotation)")
-    @Transactional
-    public Object logMsg(final ProceedingJoinPoint jp) throws Throwable {
+    @AfterReturning("@annotation(com.hzwotu.operationlogsdk.aspect.LogMsgAspectAnnotation)")
+    public void logMsg(final ProceedingJoinPoint jp) throws Throwable {
         if (modelName.size() == 0) {
             initDataMap();
         }
@@ -138,14 +139,6 @@ public class LogMsgAop {
                 throw new RuntimeException("插入异常:", e);
             }
         }
-/*        try {
-            jp.proceed();
-        }catch (Exception e){
-            logger.error("捕获到异常 {}:,moduleResult:{}",e,modelResult);
-
-        }*/
-        return jp.proceed();
-
 
     }
 
