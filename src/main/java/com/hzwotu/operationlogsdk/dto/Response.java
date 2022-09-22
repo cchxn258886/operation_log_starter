@@ -3,7 +3,6 @@ package com.hzwotu.operationlogsdk.dto;
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import io.swagger.annotations.ApiModel;
 import io.swagger.annotations.ApiModelProperty;
-import org.apache.commons.lang.builder.ToStringBuilder;
 
 
 @ApiModel(value = "统一响应对象")
@@ -170,12 +169,8 @@ public class Response<T> {
      *
      * @return
      */
-    @JsonIgnore
 
-    @Override
-    public String toString() {
-        return ToStringBuilder.reflectionToString(this);
-    }
+
 
     public void setSuccess(Boolean success) {
         this.success = success;

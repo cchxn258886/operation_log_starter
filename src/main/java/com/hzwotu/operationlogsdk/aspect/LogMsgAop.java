@@ -3,12 +3,13 @@ package com.hzwotu.operationlogsdk.aspect;
 import com.hzwotu.operationlogsdk.aspect.config.OperationLogConfigProperties;
 import com.hzwotu.operationlogsdk.dto.*;
 import com.hzwotu.operationlogsdk.filter.MyRequestWrapper;
-import com.hzwotu.operationlogsdk.po.*;
+import com.hzwotu.operationlogsdk.po.OperationLogEntity;
+import com.hzwotu.operationlogsdk.po.OperationLogTypeEntity;
+import com.hzwotu.operationlogsdk.po.UserInfo;
 import com.hzwotu.operationlogsdk.service.OperationLogService;
 import com.hzwotu.operationlogsdk.service.OperationLogTypeService;
 import com.hzwotu.operationlogsdk.utils.JsonUtil;
 import io.swagger.annotations.ApiOperation;
-import org.apache.commons.lang.reflect.FieldUtils;
 import org.apache.hc.client5.http.classic.methods.HttpGet;
 import org.apache.hc.client5.http.classic.methods.HttpPost;
 import org.apache.hc.client5.http.impl.classic.CloseableHttpClient;
@@ -74,8 +75,6 @@ public class LogMsgAop {
             initDataMap();
         }
         HttpServletRequest request = ((ServletRequestAttributes) RequestContextHolder.currentRequestAttributes()).getRequest();
-//        Map pathVariables = (Map) request.getAttribute(HandlerMapping.URI_TEMPLATE_VARIABLES_ATTRIBUTE);
-//        String queryString = (String)pathVariables.get("code");
         Object[] args = jp.getArgs();
         MethodSignature signature = (MethodSignature) jp.getSignature();
         Method method = signature.getMethod();
@@ -216,7 +215,7 @@ public class LogMsgAop {
         }
         LogMsgDto logMsgDto = map.get(key);
         String classType = logMsgDto.getClassType();
-        try {
+/*        try {
             switch (classType) {
                 case "java.lang.String":
                     Object value = FieldUtils.readDeclaredField(logMsgDto.getValue(), "value", true);
@@ -231,7 +230,7 @@ public class LogMsgAop {
             }
         } catch (IllegalAccessException exception) {
             throw new RuntimeException("内部错误");
-        }
+        }*/
         return "";
     }
 
@@ -306,9 +305,8 @@ public class LogMsgAop {
                 }
             }
         } catch (Exception e) {
-            ipAddress="";
+            ipAddress = "";
         }
-        // ipAddress = this.getRequest().getRemoteAddr();
 
         return ipAddress;
     }

@@ -76,7 +76,6 @@ public class JsonUtil {
     }
 
 
-
     public static String parseMap2JSON(Map<String, Object> map) {
         ObjectMapper mapper = new ObjectMapper();
         mapper.enable(JsonGenerator.Feature.IGNORE_UNKNOWN)
