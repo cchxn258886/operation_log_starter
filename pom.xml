@@ -5,7 +5,7 @@
 
     <groupId>com.hzwotu</groupId>
     <artifactId>operationlog-sdk</artifactId>
-    <version>1.0.4-SNAPSHOT</version>
+    <version>1.0.5-SNAPSHOT</version>
     <name>operationlog-sdk</name>
     <description>operationlog-sdk</description>
     <properties>

@@ -1,12 +1,14 @@
 package com.hzwotu.operationlogsdk.aspect.config;
 
 import org.springframework.boot.context.properties.ConfigurationProperties;
+import org.springframework.context.annotation.PropertySource;
 
 /**
  * @Author chenl
  * @Date 2022/9/14 2:12 下午
  */
 @ConfigurationProperties(value = "com.wotu.operationlog")
+@PropertySource(value = "classpath:*.properties", encoding = "utf-8")
 public class OperationLogConfigProperties {
     private Boolean enable;
     private String jdbcUrl;
@@ -30,6 +32,7 @@ public class OperationLogConfigProperties {
     public String getZhName() {
         return zhName;
     }
+
 
     public void setZhName(String zhName) {
         this.zhName = zhName;

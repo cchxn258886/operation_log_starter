@@ -1,6 +1,7 @@
 package com.hzwotu.operationlogsdk.aspect;
 
 import com.hzwotu.operationlogsdk.aspect.config.OperationLogConfigProperties;
+import com.hzwotu.operationlogsdk.aspect.config.ThreadPoolConfig;
 import com.hzwotu.operationlogsdk.dto.*;
 import com.hzwotu.operationlogsdk.filter.MyRequestWrapper;
 import com.hzwotu.operationlogsdk.po.OperationLogEntity;
@@ -39,6 +40,7 @@ import java.nio.charset.StandardCharsets;
 import java.time.LocalDateTime;
 import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ExecutorService;
 
 /**
  * @Author chenl
@@ -57,7 +59,8 @@ public class LogMsgAop {
     OperationLogTypeService operationLogTypeService;
     @Autowired
     OperationLogConfigProperties operationLogConfigProperties;
-
+    @Autowired
+    ThreadPoolConfig threadPoolConfig;
     Map<String, FilterDto> parseCache = new ConcurrentHashMap<>();
 
 
@@ -66,11 +69,28 @@ public class LogMsgAop {
 
 
     @AfterReturning("@annotation(com.hzwotu.operationlogsdk.aspect.LogMsgAspectAnnotation)")
-    public void logMsg(final JoinPoint jp) throws Throwable {
-//        if (modelName.size() == 0) {
-//            initDataMap();
-//        }
+    public void logMsg(final JoinPoint jp)  {
+        ExecutorService executorService = threadPoolConfig.threadPool();
         HttpServletRequest request = ((ServletRequestAttributes) RequestContextHolder.currentRequestAttributes()).getRequest();
+        String remoteHost = getRemoteHost(request);
+        String requestURI = request.getRequestURI();
+        executorService.execute(new Runnable() {
+            @Override
+            public void run() {
+                try {
+                    async(jp,request,remoteHost,requestURI);
+                } catch (Throwable e) {
+                    throw new RuntimeException("错误:",e);
+                }
+            }
+        });
+
+
+
+    }
+
+
+    private void async(final JoinPoint jp,HttpServletRequest request,String ipAddress,String requestUri) throws Throwable {
         Object[] args = jp.getArgs();
         MethodSignature signature = (MethodSignature) jp.getSignature();
         Method method = signature.getMethod();
@@ -102,14 +122,8 @@ public class LogMsgAop {
             operationLogEntity.setModule(filterDto.getModelName());
             operationLogEntity.setAdminCode(userCode);
             operationLogEntity.setAction(filterDto.getModelResult());
-            operationLogEntity.setIp(getRemoteHost(request));
-/*
-            UserInfo userInfo = getUserInfo(userCode);
-            if (Objects.isNull(userInfo)) {
-                throw new RuntimeException("userCode获取数据失败:" + userCode);
-            }
-            operationLogEntity.setUserName(userInfo.getUserName());
-            operationLogEntity.setMobile(userInfo.getMobile());*/
+            operationLogEntity.setIp(ipAddress);
+
             String requestString = "{}";
 
             MyRequestWrapper myRequestWrapper = new MyRequestWrapper(request);
@@ -123,7 +137,7 @@ public class LogMsgAop {
             if (!StringUtils.isEmpty(code)) {
                 operationLogEntity.setKeyCode(code);
             } else {
-                String[] strings = parseUri(request.getRequestURI());
+                String[] strings = parseUri(requestUri);
                 if (body.length == 0) {
                     operationLogEntity.setKeyCode(strings[strings.length - 1]);
                 } else {
@@ -138,9 +152,7 @@ public class LogMsgAop {
                 throw new RuntimeException("插入异常:", e);
             }
         }
-
     }
-
 
     private String parseExpressWithRequest(String express, Parameter[] parameters, Object[] args, Class<?>[] parameterTypes) {
 
