@@ -1,4 +1,4 @@
-package com.hzwotu.operationlogsdk.aspect.config;
+package com.chen.operationlogstarter.aspect.config;
 
 import org.springframework.boot.autoconfigure.condition.ConditionalOnClass;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
@@ -12,7 +12,7 @@ import org.springframework.context.annotation.Configuration;
 @Configuration
 @ConditionalOnClass(OperationLogConfigProperties.class)
 @EnableConfigurationProperties(OperationLogConfigProperties.class)
-@ComponentScan(basePackages = {"com.hzwotu.*"})
+@ComponentScan(basePackages = {"com.chen.*"})
 public class OperationLogAutoConfig {
 
 }

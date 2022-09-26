@@ -1,2 +1,2 @@
 org.springframework.boot.autoconfigure.EnableAutoConfiguration=\
-  com.hzwotu.operationlogsdk.aspect.config.OperationLogAutoConfig
+  com.chen.operationlogstarter.aspect.config.OperationLogAutoConfig

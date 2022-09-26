@@ -1,4 +1,4 @@
-package com.hzwotu.operationlogsdk;
+package com.chen.operationlogstarter;
 
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;

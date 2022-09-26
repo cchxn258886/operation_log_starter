@@ -1,6 +1,6 @@
-package com.hzwotu.operationlogsdk.service;
+package com.chen.operationlogstarter.service;
 
-import com.hzwotu.operationlogsdk.po.OperationLogEntity;
+import com.chen.operationlogstarter.po.OperationLogEntity;
 
 import java.sql.SQLException;
 

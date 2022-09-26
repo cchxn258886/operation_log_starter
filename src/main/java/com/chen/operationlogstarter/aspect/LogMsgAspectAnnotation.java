@@ -1,4 +1,4 @@
-package com.hzwotu.operationlogsdk.aspect;
+package com.chen.operationlogstarter.aspect;
 
 import java.lang.annotation.ElementType;
 import java.lang.annotation.Retention;

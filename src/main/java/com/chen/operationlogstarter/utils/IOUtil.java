@@ -1,4 +1,4 @@
-package com.hzwotu.operationlogsdk.utils;
+package com.chen.operationlogstarter.utils;
 
 
 import java.io.ByteArrayOutputStream;

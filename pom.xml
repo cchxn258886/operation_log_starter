@@ -3,9 +3,9 @@
          xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 https://maven.apache.org/xsd/maven-4.0.0.xsd">
     <modelVersion>4.0.0</modelVersion>
 
-    <groupId>com.hzwotu</groupId>
+    <groupId>com.chen</groupId>
     <artifactId>operationlog-sdk</artifactId>
-    <version>1.0.5-SNAPSHOT</version>
+    <version>1.0.6-SNAPSHOT</version>
     <name>operationlog-sdk</name>
     <description>operationlog-sdk</description>
     <properties>
@@ -64,19 +64,5 @@
         </dependency>
 
     </dependencies>
-
-    <distributionManagement>
-        <snapshotRepository>
-            <id>rdc-snapshots</id>
-            <name>snapshots</name>
-            <url>https://packages.aliyun.com/maven/repository/2174145-snapshot-pRpeaE/</url>
-        </snapshotRepository>
-
-        <repository>
-            <id>rdc-releases</id>
-            <name>releases</name>
-            <url>https://packages.aliyun.com/maven/repository/2174145-release-x2MoSk/</url>
-        </repository>
-    </distributionManagement>
 
 </project>

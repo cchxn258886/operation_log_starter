@@ -1,4 +1,4 @@
-package com.hzwotu.operationlogsdk.aspect.config;
+package com.chen.operationlogstarter.aspect.config;
 
 import org.springframework.context.annotation.Bean;
 import org.springframework.stereotype.Component;

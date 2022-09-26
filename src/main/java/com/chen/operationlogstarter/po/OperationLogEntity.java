@@ -1,4 +1,4 @@
-package com.hzwotu.operationlogsdk.po;
+package com.chen.operationlogstarter.po;
 
 import java.time.LocalDateTime;
 

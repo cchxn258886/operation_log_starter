@@ -1,8 +1,8 @@
-package com.hzwotu.operationlogsdk.service.impl;
+package com.chen.operationlogstarter.service.impl;
 
-import com.hzwotu.operationlogsdk.aspect.config.OperationLogConfigProperties;
-import com.hzwotu.operationlogsdk.po.OperationLogEntity;
-import com.hzwotu.operationlogsdk.service.OperationLogService;
+import com.chen.operationlogstarter.service.OperationLogService;
+import com.chen.operationlogstarter.aspect.config.OperationLogConfigProperties;
+import com.chen.operationlogstarter.po.OperationLogEntity;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;

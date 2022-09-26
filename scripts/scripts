@@ -1,0 +1,15 @@
+-- auto-generated definition
+create table operation_log
+(
+    created_at timestamp(6) default CURRENT_TIMESTAMP(6) not null comment '时间',
+    ip         char(16)     default ''                   not null comment 'IP',
+    action     varchar(50)  default ''                   not null comment '模块细分',
+    code       varchar(25)                               not null comment '编码'
+        primary key,
+    admin_code varchar(25)  default ''                   not null comment '管理员编码',
+    param      json                                      not null comment '请求参数',
+    key_code   varchar(25)  default ''                   not null comment '更新的主键',
+    module     varchar(20)  default ''                   not null comment '模块'
+)
+    comment '操作日志表';
+

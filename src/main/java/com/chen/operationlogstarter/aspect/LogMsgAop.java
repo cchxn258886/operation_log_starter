@@ -1,23 +1,20 @@
-package com.hzwotu.operationlogsdk.aspect;
+package com.chen.operationlogstarter.aspect;
 
-import com.hzwotu.operationlogsdk.aspect.config.OperationLogConfigProperties;
-import com.hzwotu.operationlogsdk.aspect.config.ThreadPoolConfig;
-import com.hzwotu.operationlogsdk.dto.*;
-import com.hzwotu.operationlogsdk.filter.MyRequestWrapper;
-import com.hzwotu.operationlogsdk.po.OperationLogEntity;
-import com.hzwotu.operationlogsdk.po.UserInfo;
-import com.hzwotu.operationlogsdk.service.OperationLogService;
-import com.hzwotu.operationlogsdk.service.OperationLogTypeService;
-import com.hzwotu.operationlogsdk.utils.JsonUtil;
+import com.chen.operationlogstarter.aspect.config.OperationLogConfigProperties;
+import com.chen.operationlogstarter.aspect.config.ThreadPoolConfig;
+import com.chen.operationlogstarter.dto.FilterDto;
+import com.chen.operationlogstarter.dto.LogMsgDto;
+import com.chen.operationlogstarter.dto.SubStringPosition;
+import com.chen.operationlogstarter.filter.MyRequestWrapper;
+import com.chen.operationlogstarter.po.OperationLogEntity;
+import com.chen.operationlogstarter.service.OperationLogService;
+import com.chen.operationlogstarter.utils.JsonUtil;
 import io.swagger.annotations.ApiOperation;
 import org.apache.hc.client5.http.classic.methods.HttpGet;
-import org.apache.hc.client5.http.classic.methods.HttpPost;
 import org.apache.hc.client5.http.impl.classic.CloseableHttpClient;
 import org.apache.hc.client5.http.impl.classic.CloseableHttpResponse;
 import org.apache.hc.client5.http.impl.classic.HttpClientBuilder;
-import org.apache.hc.core5.http.ContentType;
 import org.apache.hc.core5.http.io.entity.EntityUtils;
-import org.apache.hc.core5.http.io.entity.StringEntity;
 import org.aspectj.lang.JoinPoint;
 import org.aspectj.lang.annotation.AfterReturning;
 import org.aspectj.lang.annotation.Aspect;
@@ -36,7 +33,6 @@ import java.lang.reflect.Method;
 import java.lang.reflect.Parameter;
 import java.net.InetAddress;
 import java.net.UnknownHostException;
-import java.nio.charset.StandardCharsets;
 import java.time.LocalDateTime;
 import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
@@ -56,19 +52,16 @@ public class LogMsgAop {
     @Autowired
     OperationLogService operationLogService;
     @Autowired
-    OperationLogTypeService operationLogTypeService;
-    @Autowired
     OperationLogConfigProperties operationLogConfigProperties;
     @Autowired
     ThreadPoolConfig threadPoolConfig;
     Map<String, FilterDto> parseCache = new ConcurrentHashMap<>();
 
 
-    // 这里从db 或者redis里面去拿 做成配置表 现在简单点就这么写
     private static final Map<String, String> modelName = new HashMap();
 
 
-    @AfterReturning("@annotation(com.hzwotu.operationlogsdk.aspect.LogMsgAspectAnnotation)")
+    @AfterReturning("@annotation(com.chen.operationlogstarter.aspect.LogMsgAspectAnnotation)")
     public void logMsg(final JoinPoint jp) {
         ExecutorService executorService = threadPoolConfig.threadPool();
         HttpServletRequest request = ((ServletRequestAttributes) RequestContextHolder.currentRequestAttributes()).getRequest();
@@ -319,20 +312,6 @@ public class LogMsgAop {
      */
     @PostConstruct
     private void initDataMap() {
-/*        List<OperationLogTypeEntity> operationLogTypeEntities = null;
-        try {
-            logger.info("初始化map");
-            operationLogTypeEntities = operationLogTypeService.selectAll();
-        } catch (SQLException e) {
-            logger.error("初始化Map失败", e);
-            throw new RuntimeException("初始化Map失败");
-        }
-        if (CollectionUtils.isEmpty(operationLogTypeEntities)) {
-            throw new RuntimeException("数据库加载数据为空");
-        }
-        operationLogTypeEntities.forEach((item) -> {
-            modelName.put(item.getEnName(), item.getZhName());
-        });*/
         if (operationLogConfigProperties.getEnName().isEmpty() || operationLogConfigProperties.getZhName().isEmpty()) {
             throw new RuntimeException("映射配置需要配置完全");
         }
@@ -353,37 +332,6 @@ public class LogMsgAop {
         return "";
     }
 
-    private UserInfo getUserInfo(String userCode) {
-        if (StringUtils.isEmpty(userCode)) {
-            return null;
-        }
-        CloseableHttpClient httpClient = HttpClientBuilder.create().build();
-        String url = String.format("http://%s/admin/v1.1/list", operationLogConfigProperties.getAdminServiceAddress());
-        HttpPost httpPost = new HttpPost(url);
-        httpPost.setHeader("Authorization", AUTHORIZATION_FINANCE_SERVICE);
-        HashMap<String, Object> map = new HashMap<>();
-        List<String> list = Arrays.asList(userCode);
-        map.put("codeList", list);
-        ContentType contentType = ContentType.create("application/json", StandardCharsets.UTF_8);
-        StringEntity json = new StringEntity(JsonUtil.parseMap2JSON(map), contentType);
-        httpPost.setEntity(json);
-        UserInfo userInfo = null;
-        try {
-            CloseableHttpResponse response = httpClient.execute(httpPost);
-            String s = (EntityUtils.toString(response.getEntity()));
-            Response parse = JsonUtil.parse(s, Response.class);
-            List data = (List) parse.getData();
-
-
-            String s1 = JsonUtil.parseMap2JSON((Map<String, Object>) data.get(0));
-            AdminPageDto parse1 = JsonUtil.parse(s1, AdminPageDto.class);
-            userInfo = new UserInfo(userCode, parse1.getName(), parse1.getMobile());
-        } catch (Exception e) {
-            e.printStackTrace();
-        }
-
-        return userInfo;
-    }
 
 }
 

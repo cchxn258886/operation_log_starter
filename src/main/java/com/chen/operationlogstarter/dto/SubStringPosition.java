@@ -1,4 +1,4 @@
-package com.hzwotu.operationlogsdk.dto;
+package com.chen.operationlogstarter.dto;
 
 /**
  * @Author chenl

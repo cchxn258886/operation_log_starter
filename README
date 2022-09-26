@@ -1,0 +1,8 @@
+# Java web
+项目中添加操作日志
+比如一个接口 获取其请求参数 用来保存到数据库json格式(目前只是async到mysql 可以自己自定义到ES等)
+使用方式在接口上定义 @LogMsgAspectAnnotation
+仅供参考 是从项目里面拆出来的
+
+效果: 数据库记录
+2209221OCPFMGW,具体业务模块,具体操作,"",192.168.0.18,"{""bank"": ""nihao"", ""code"": """", ""name"": ""nihoa"", ""dutyNo"": ""123456"", ""address"": ""nihao"", ""bankAccount"": ""123456"", ""contactName"": ""nihao"", ""contactMobile"": ""123456""}",2209091GH4BQ0W,2022-09-22 17:49:07.894549
