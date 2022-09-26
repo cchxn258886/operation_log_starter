@@ -49,19 +49,21 @@ public class RequestReplaceFilter  implements Filter {
         HttpServletRequest request = (HttpServletRequest) servletRequest;
         String requestURI = request.getRequestURI();
         if ("/auth/open_resource/file/upload".equals(requestURI) || "/auth/resource/file/upload".equals(requestURI) ){
-            return;
-        }
-        ServletRequest requestWrapper = null;
-        if(servletRequest instanceof HttpServletRequest) {
-            requestWrapper = new MyRequestWrapper((HttpServletRequest) servletRequest);
-        }
-        //获取请求中的流，将取出来的字符串，再次转换成流，然后把它放入到新 request对象中
-        // 在chain.doFiler方法中传递新的request对象
-        if(null == requestWrapper) {
             filterChain.doFilter(servletRequest, servletResponse);
-        } else {
-            filterChain.doFilter(requestWrapper, servletResponse);
+        }else {
+            ServletRequest requestWrapper = null;
+            if(servletRequest instanceof HttpServletRequest) {
+                requestWrapper = new MyRequestWrapper((HttpServletRequest) servletRequest);
+            }
+            //获取请求中的流，将取出来的字符串，再次转换成流，然后把它放入到新 request对象中
+            // 在chain.doFiler方法中传递新的request对象
+            if(null == requestWrapper) {
+                filterChain.doFilter(servletRequest, servletResponse);
+            } else {
+                filterChain.doFilter(requestWrapper, servletResponse);
+            }
         }
+
     }
 
     @Override

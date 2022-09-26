@@ -69,7 +69,7 @@ public class LogMsgAop {
 
 
     @AfterReturning("@annotation(com.hzwotu.operationlogsdk.aspect.LogMsgAspectAnnotation)")
-    public void logMsg(final JoinPoint jp)  {
+    public void logMsg(final JoinPoint jp) {
         ExecutorService executorService = threadPoolConfig.threadPool();
         HttpServletRequest request = ((ServletRequestAttributes) RequestContextHolder.currentRequestAttributes()).getRequest();
         String remoteHost = getRemoteHost(request);
@@ -78,19 +78,18 @@ public class LogMsgAop {
             @Override
             public void run() {
                 try {
-                    async(jp,request,remoteHost,requestURI);
+                    async(jp, request, remoteHost, requestURI);
                 } catch (Throwable e) {
-                    throw new RuntimeException("错误:",e);
+                    throw new RuntimeException("错误:", e);
                 }
             }
         });
 
 
-
     }
 
 
-    private void async(final JoinPoint jp,HttpServletRequest request,String ipAddress,String requestUri) throws Throwable {
+    private void async(final JoinPoint jp, HttpServletRequest request, String ipAddress, String requestUri) throws Throwable {
         Object[] args = jp.getArgs();
         MethodSignature signature = (MethodSignature) jp.getSignature();
         Method method = signature.getMethod();
