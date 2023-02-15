@@ -1,5 +1,9 @@
 package com.chen.operationlogstarter.po;
 
+import com.alibaba.fastjson2.annotation.JSONField;
+import com.hzwotu.operationlogsdk.dto.FilterDto;
+import com.hzwotu.operationlogsdk.utils.IDUtil;
+
 import java.time.LocalDateTime;
 
 /**
@@ -15,7 +19,19 @@ public class OperationLogEntity {
     private String param;
     private String adminCode;
     private String ip;
+
+    @JSONField(format = "yyyy-MM-dd HH:mm:ss.SSS")
     private LocalDateTime createdAt;
+
+    private String adminName;
+
+    public String getAdminName() {
+        return adminName;
+    }
+
+    public void setAdminName(String adminName) {
+        this.adminName = adminName;
+    }
 
     public String getCode() {
         return code;
@@ -93,5 +109,14 @@ public class OperationLogEntity {
                 ", ip='" + ip + '\'' +
                 ", createdAt=" + createdAt +
                 '}';
+    }
+
+
+    public void create(OperationLogEntity operationLogEntity, String adminCode, FilterDto filterDto){
+        operationLogEntity.setCreatedAt(LocalDateTime.now());
+        operationLogEntity.setCode(IDUtil.getIdGen());
+        operationLogEntity.setAdminCode(adminCode);
+        operationLogEntity.setModule(filterDto.getModelName());
+        operationLogEntity.setAction(filterDto.getModelResult());
     }
 }

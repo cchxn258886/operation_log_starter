@@ -15,18 +15,11 @@ import java.lang.annotation.Target;
 @Target({ElementType.TYPE,ElementType.METHOD})
 @Retention(RetentionPolicy.RUNTIME)
 public @interface LogMsgAspectAnnotation {
-
-    String expression() default "";
     /**
-     * 如果mapperName 为空 取tableName 拼上mapper
+     *
+     * 支持自定义日志
+     * 默认是不需要参数 表示从httpReq中拿requestBody
+     * 自定义日志输入记录删掉了 后续有需求在写
      * */
-    String mapperName() default "";
-//    String tableName() ;
-
-    /**
-     * 后续获取修改前数据 初步想法实现
-    * targetName 传入目标的原始类 反射出来的数据应该是Object
-    * */
-//    String targetName();
-
+    String expression() default "";
 }

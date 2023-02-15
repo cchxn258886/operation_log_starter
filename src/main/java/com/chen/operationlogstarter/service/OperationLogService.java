@@ -1,13 +1,14 @@
 package com.chen.operationlogstarter.service;
 
-import com.chen.operationlogstarter.po.OperationLogEntity;
+import com.hzwotu.operationlogsdk.po.OperationLogEntity;
 
 import java.sql.SQLException;
 
 /**
  * @Author chenl
  * @Date 2022/9/14 3:00 下午
+ * sendMessageToMQ fix operationLog to Es
  */
 public interface OperationLogService {
-    void insert(OperationLogEntity entity) throws SQLException;
+    void sendMessageToMQ(OperationLogEntity entity) throws SQLException;
 }

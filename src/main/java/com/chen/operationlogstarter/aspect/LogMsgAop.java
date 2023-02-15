@@ -1,20 +1,13 @@
 package com.chen.operationlogstarter.aspect;
 
-import com.chen.operationlogstarter.aspect.config.OperationLogConfigProperties;
-import com.chen.operationlogstarter.aspect.config.ThreadPoolConfig;
-import com.chen.operationlogstarter.dto.FilterDto;
-import com.chen.operationlogstarter.dto.LogMsgDto;
-import com.chen.operationlogstarter.dto.SubStringPosition;
-import com.chen.operationlogstarter.filter.MyRequestWrapper;
-import com.chen.operationlogstarter.po.OperationLogEntity;
-import com.chen.operationlogstarter.service.OperationLogService;
-import com.chen.operationlogstarter.utils.JsonUtil;
+import com.alibaba.fastjson2.JSON;
+import com.hzwotu.operationlogsdk.aspect.config.OperationLogConfigProperties;
+import com.hzwotu.operationlogsdk.aspect.config.ThreadPoolConfigOperationLog;
+import com.hzwotu.operationlogsdk.dto.FilterDto;
+import com.hzwotu.operationlogsdk.po.OperationLogEntity;
+import com.hzwotu.operationlogsdk.service.OperationLogService;
+import com.hzwotu.operationlogsdk.utils.StringUtil;
 import io.swagger.annotations.ApiOperation;
-import org.apache.hc.client5.http.classic.methods.HttpGet;
-import org.apache.hc.client5.http.impl.classic.CloseableHttpClient;
-import org.apache.hc.client5.http.impl.classic.CloseableHttpResponse;
-import org.apache.hc.client5.http.impl.classic.HttpClientBuilder;
-import org.apache.hc.core5.http.io.entity.EntityUtils;
 import org.aspectj.lang.JoinPoint;
 import org.aspectj.lang.annotation.AfterReturning;
 import org.aspectj.lang.annotation.Aspect;
@@ -30,13 +23,14 @@ import org.springframework.web.context.request.ServletRequestAttributes;
 import javax.annotation.PostConstruct;
 import javax.servlet.http.HttpServletRequest;
 import java.lang.reflect.Method;
-import java.lang.reflect.Parameter;
 import java.net.InetAddress;
+import java.net.URLDecoder;
 import java.net.UnknownHostException;
-import java.time.LocalDateTime;
+import java.nio.charset.StandardCharsets;
 import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ExecutorService;
+import java.util.stream.Collectors;
 
 /**
  * @Author chenl
@@ -54,202 +48,105 @@ public class LogMsgAop {
     @Autowired
     OperationLogConfigProperties operationLogConfigProperties;
     @Autowired
-    ThreadPoolConfig threadPoolConfig;
+    ThreadPoolConfigOperationLog threadPoolConfigOperationLog;
+    @Autowired
+    ExecutorService threadPool;
+
     Map<String, FilterDto> parseCache = new ConcurrentHashMap<>();
 
-
-    private static final Map<String, String> modelName = new HashMap();
-
-
-    @AfterReturning("@annotation(com.chen.operationlogstarter.aspect.LogMsgAspectAnnotation)")
+    @AfterReturning("@annotation(com.hzwotu.operationlogsdk.aspect.LogMsgAspectAnnotation)")
     public void logMsg(final JoinPoint jp) {
-        ExecutorService executorService = threadPoolConfig.threadPool();
+        logger.info("进入操作日志切面===========>>>>");
         HttpServletRequest request = ((ServletRequestAttributes) RequestContextHolder.currentRequestAttributes()).getRequest();
         String remoteHost = getRemoteHost(request);
         String requestURI = request.getRequestURI();
-        executorService.execute(new Runnable() {
-            @Override
-            public void run() {
-                try {
-                    async(jp, request, remoteHost, requestURI);
-                } catch (Throwable e) {
-                    throw new RuntimeException("错误:", e);
-                }
+        threadPool.execute(() -> {
+            try {
+                async(jp, request, remoteHost, requestURI);
+            } catch (Throwable e) {
+                throw new RuntimeException("错误:", e);
             }
         });
 
 
     }
 
-
+    /**
+     * 异步插入
+     */
     private void async(final JoinPoint jp, HttpServletRequest request, String ipAddress, String requestUri) throws Throwable {
-        Object[] args = jp.getArgs();
         MethodSignature signature = (MethodSignature) jp.getSignature();
+        String[] parameterNames = signature.getParameterNames();
         Method method = signature.getMethod();
-        String s = jp.getTarget().getClass().getName() + "." + method.getName();
-        Class<?>[] parameterTypes = method.getParameterTypes();
-        Parameter[] parameters = method.getParameters();
-        String[] parameterNames = ((MethodSignature) jp.getSignature()).getParameterNames();
+        Object[] args = jp.getArgs();
         LogMsgAspectAnnotation logAnnotation = method.getAnnotation(LogMsgAspectAnnotation.class);
         ApiOperation annotation = method.getAnnotation(ApiOperation.class);
+
         String modelResult = "";
         if (!Objects.isNull(annotation)) {
             modelResult = annotation.value();
         }
 
-        String expression = logAnnotation.expression();
-        if (!StringUtils.isEmpty(expression)) {
-            String s1 = parseExpressWithRequest(expression, parameters, args, parameterTypes);
+        String userCode = request.getHeader("userCode");
+        String userName = URLDecoder.decode(Optional.of(request.getHeader("userName")).orElse(""), StandardCharsets.UTF_8);
+        if (StringUtils.isEmpty(userCode)) {
+            userCode = "";
+        }
+        if (StringUtils.isEmpty(userName)){
+            userName = "";
+        }
+        FilterDto filterDto = parseNoExpress(request, modelResult);
+        OperationLogEntity operationLogEntity = new OperationLogEntity();
+        operationLogEntity.create(operationLogEntity,userCode,filterDto);
+        operationLogEntity.setIp(ipAddress);
+        operationLogEntity.setAdminName(userName);
+
+        //填充keyCodeAndParam
+        fillKeyCodeAndParam(requestUri, parameterNames, args, operationLogEntity);
+
+        logger.debug("操作日志切面 插入数据:{}", operationLogEntity);
+        try {
+            operationLogService.sendMessageToMQ(operationLogEntity);
+        } catch (Exception e) {
+            logger.error("插入异常:", e);
+            throw new RuntimeException("插入异常:", e);
+        }
+    }
+
+    private void fillKeyCodeAndParam(String requestUri, String[] parameterNames, Object[] args, OperationLogEntity operationLogEntity) {
+        Map<String, Object> stringObjectMap = changeArgsToMap(parameterNames, args);
+        String paramJson = JSON.toJSONString(stringObjectMap);
+        operationLogEntity.setParam(paramJson);
+
+        Collection<Object> values = stringObjectMap.values();
+        List<Object> codes = values.stream().map((item) -> {
+            //传入的参数 目前来看只有String和DTO两种 这样不会有问题。String 是因为有userCode
+            // 如果有其他基础类型的话 只能强制挂到DTO下面去
+            //不能直接丢到controller的入参
+            if (item instanceof String){
+                return null;
+            }
+            return JSON.parseObject(JSON.toJSONString(item)).get("code");
+        }).collect(Collectors.toList());
+
+        Object first = codes.stream().filter(Objects::nonNull).findFirst().orElse("");
+        if (StringUtil.isNotEmpty((String)first)) {
+            operationLogEntity.setKeyCode((String)first);
         } else {
-            String userCode = request.getHeader("userCode");
-            if (StringUtils.isEmpty(userCode)) {
-                userCode = "";
-            }
-            FilterDto filterDto = parseNoExpress(request, userCode, modelResult);
-            OperationLogEntity operationLogEntity = new OperationLogEntity();
-            LocalDateTime now = LocalDateTime.now();
-            operationLogEntity.setCreatedAt(now);
-
-            operationLogEntity.setCode(getCodeFromHttp());
-            operationLogEntity.setModule(filterDto.getModelName());
-            operationLogEntity.setAdminCode(userCode);
-            operationLogEntity.setAction(filterDto.getModelResult());
-            operationLogEntity.setIp(ipAddress);
-
-            String requestString = "{}";
-
-            MyRequestWrapper myRequestWrapper = new MyRequestWrapper(request);
-            byte[] body = myRequestWrapper.getBody();
-            if (!Objects.isNull(body) && body.length != 0) {
-                requestString = new String(body);
-            }
-            operationLogEntity.setParam(requestString);
-            Map<String, Object> stringObjectMap = JsonUtil.parseJSON2Map(requestString);
-            String code = (String) stringObjectMap.getOrDefault("code", "");
-            if (!StringUtils.isEmpty(code)) {
-                operationLogEntity.setKeyCode(code);
-            } else {
-                String[] strings = parseUri(requestUri);
-                if (body.length == 0) {
-                    operationLogEntity.setKeyCode(strings[strings.length - 1]);
-                } else {
-                    operationLogEntity.setKeyCode("");
-                }
-            }
-
-            try {
-                operationLogService.insert(operationLogEntity);
-            } catch (Exception e) {
-                logger.error("插入异常:", e);
-                throw new RuntimeException("插入异常:", e);
-            }
+            String[] strings = parseUri(requestUri);
+            operationLogEntity.setKeyCode(strings[strings.length - 1]);
         }
     }
 
-    private String parseExpressWithRequest(String express, Parameter[] parameters, Object[] args, Class<?>[] parameterTypes) {
-
-        char[] expressChars = express.toCharArray();
-        List<SubStringPosition> subStringPosition = getSubStringPosition(expressChars);
-
-        HashMap<String, LogMsgDto> stringObjectHashMap = new HashMap<>();
-        for (int i = 0; i < parameters.length; i++) {
-            LogMsgDto logMsgDto = new LogMsgDto(parameterTypes[i].getName(), args[i]);
-            stringObjectHashMap.put(parameters[i].getName(), logMsgDto);
-        }
-        return getFinalString(subStringPosition, express, stringObjectHashMap);
-    }
-
-    private List<SubStringPosition> getSubStringPosition(char[] expressChars) {
-        ArrayList<SubStringPosition> subStringPositions = new ArrayList<>();
-        int left = 0;
-        int right = 0;
-        while (left < expressChars.length) {
-            if (expressChars[left] == '{') {
-                right = left;
-                while (right < expressChars.length) {
-                    if (expressChars[right] == '}') {
-                        subStringPositions.add(new SubStringPosition(left, right));
-                        left = right;
-                        break;
-                    }
-                    ++right;
-                }
-            }
-            ++left;
-        }
-        return subStringPositions;
-    }
-
-    private String getFinalString(List<SubStringPosition> subStringPosition, String express, HashMap<String, LogMsgDto> stringObjectHashMap) {
-        String[] strings = new String[subStringPosition.size()];
-        for (int i = 0; i < subStringPosition.size(); i++) {
-            String key = express.substring(subStringPosition.get(i).getLeft() + 1, subStringPosition.get(i).getRight());
-            key = String.format("#{%s}", key);
-            strings[i] = key;
-        }
-
-        String expressCopy = express;
-        for (int i = 0; i < strings.length; i++) {
-            String key = express.substring(subStringPosition.get(i).getLeft() + 1, subStringPosition.get(i).getRight());
-            //#{vo.databaseName} #{in} key = 括号里面的东西 vo.database vo.ipaddress in
-            String s = getObjectValueUseReflect(stringObjectHashMap, key);
-            expressCopy = expressCopy.replace(strings[i], s);
-        }
-        return expressCopy;
-    }
-
-    /**
-     * key requestIn
-     * if requestIn contanin . get first
-     */
-    private String getObjectValueUseReflect(HashMap<String, LogMsgDto> map, String key) {
-//        FieldUtils.readDeclaredField()
-        String[] split = new String[2];
-        if (key.contains(".")) {
-            split = Arrays.copyOf(key.split("\\."), 2);
-            key = split[0];
-        }
-        LogMsgDto logMsgDto = map.get(key);
-        String classType = logMsgDto.getClassType();
-/*        try {
-            switch (classType) {
-                case "java.lang.String":
-                    Object value = FieldUtils.readDeclaredField(logMsgDto.getValue(), "value", true);
-                    char[] o1 = (char[]) value;
-                    return new String(o1);
-                case "java.lang.int":
-                    System.out.println("待实现");
-                    break;
-                default:
-                    Object o = FieldUtils.readDeclaredField(logMsgDto.getValue(), split[1], true);
-                    return o.toString();
-            }
-        } catch (IllegalAccessException exception) {
-            throw new RuntimeException("内部错误");
-        }*/
-        return "";
-    }
 
 
-    private FilterDto parseNoExpress(HttpServletRequest request, String userCode, String modelResult) {
+    private FilterDto parseNoExpress(HttpServletRequest request, String
+            modelResult) {
         String uri = request.getRequestURI();
         if (parseCache.containsKey(uri)) {
             return parseCache.get(uri);
         }
-        String[] split = parseUri(uri);
-        String modelNameOrDefault = modelName.getOrDefault(split[1], "");
-        String key = split[split.length - 1];
-        if (key.startsWith("update") || key.endsWith("update")) {
-            key = "update";
-        } else if (key.startsWith("delete") || key.endsWith("delete")) {
-            key = "delete";
-        } else if (key.startsWith("insert") || key.endsWith("insert")) {
-            key = "insert";
-        } else {
-            key = "unknown";
-        }
-        String methodName = modelName.getOrDefault(key, "");
-        String childName = modelName.getOrDefault(split[split.length - 2], "");
+        String modelNameOrDefault = operationLogConfigProperties.getZhName();
         FilterDto filterDto = new FilterDto(modelNameOrDefault, modelResult);
         parseCache.put(uri, filterDto);
         return filterDto;
@@ -262,7 +159,8 @@ public class LogMsgAop {
     private String[] parseUri(String uri) {
         String[] split = uri.split("/");
         if (split.length == 0) {
-            logger.error("split:{}", split);
+            //一般不会走到这里
+            logger.error("splitString:{}", JSON.toJSONString(split));
             throw new RuntimeException("uri解析失败");
         }
         return split;
@@ -303,7 +201,6 @@ public class LogMsgAop {
         } catch (Exception e) {
             ipAddress = "";
         }
-
         return ipAddress;
     }
 
@@ -311,27 +208,30 @@ public class LogMsgAop {
      * 初始化的时候需要从配置文件获取数据
      */
     @PostConstruct
-    private void initDataMap() {
-        if (operationLogConfigProperties.getEnName().isEmpty() || operationLogConfigProperties.getZhName().isEmpty()) {
-            throw new RuntimeException("映射配置需要配置完全");
+    private void checkConfigIsFull() {
+        if (StringUtils.isEmpty(operationLogConfigProperties.getEnName()) || StringUtils.isEmpty(operationLogConfigProperties.getZhName())) {
+            throw new RuntimeException("com.wotu.operationlog.zhName/enName映射配置需要配置完全");
         }
-        modelName.put(operationLogConfigProperties.getEnName(), operationLogConfigProperties.getZhName());
     }
 
 
-    private String getCodeFromHttp() {
-        CloseableHttpClient httpClient = HttpClientBuilder.create().build();
-        String url = String.format("http://%s/id/next_id", operationLogConfigProperties.getIdServiceAddress());
-        HttpGet get = new HttpGet(url);
-        try {
-            CloseableHttpResponse response = httpClient.execute(get);
-            return (EntityUtils.toString(response.getEntity()));
-        } catch (Exception e) {
-            logger.error("获取id-service code 失败", e);
+    /**
+     * 生成参数的key-value 用来序列化成json丢到ES 当param
+     * key String     参数的名称
+     * value Object   参数的具体的值
+     * */
+    private Map<String,Object> changeArgsToMap(String[] argsName,Object[] args){
+        HashMap<String, Object> hashMap = new HashMap<>();
+        if (argsName.length == 0 || args.length == 0){
+            return hashMap;
         }
-        return "";
+        for (int i = 0; i < argsName.length; i++) {
+            String s = argsName[i];
+            Object arg = args[i];
+            hashMap.put(s,arg);
+        }
+        return hashMap;
     }
-
 
 }
 
